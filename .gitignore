@@ -1,0 +1,67 @@
+# Dependencias
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Archivos de build/dist
+dist/
+build/
+lib/
+*.d.ts
+*.d.ts.map
+
+# Archivos temporales de TypeScript
+*.tsbuildinfo
+
+# Archivos de prueba y cobertura
+coverage/
+.nyc_output/
+test-results/
+
+# Archivos del sistema operativo
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Archivos del editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Variables de entorno
+.env
+.env.*
+*.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+logs/
+*.log
+
+# Archivos de npm
+*.tgz
+package-lock.json
+
+# Archivos de Yarn (si usas Yarn)
+yarn.lock
+
+# Cache
+.cache/
+.parcel-cache/
+.rollup.cache/
+
+# Archivos de Storybook (si los usas)
+storybook-static/
+
+# Archivos de ESLint
+.eslintcache
