@@ -15,21 +15,21 @@ Un componente React hermoso y animado que simula un fondo de galaxia con estrell
 ## 📦 Instalación
 
 ```bash
-npm install react-galaxy-bg
+npm install @r0rri/react-galaxy-bg
 ```
 
 ```bash
-yarn add react-galaxy-bg
+yarn add @r0rri/react-galaxy-bg
 
 ```bash
-pnpm add react-galaxy-bg
+pnpm add @r0rri/react-galaxy-bg
 ```
 
 ## 🚀 Uso básico
 
 ```tsx
 import React from 'react';
-import { GalaxyComponent } from 'react-galaxy-bg';
+import { GalaxyComponent } from '@r0rri/react-galaxy-bg';
 
 function App() {
   return (
@@ -62,7 +62,7 @@ export default App;
 ### Configuración personalizada
 
 ```tsx
-import { GalaxyComponent } from 'react-galaxy-bg';
+import { GalaxyComponent } from '@r0rri/react-galaxy-bg';
 
 function CustomGalaxy() {
   return (
@@ -81,7 +81,7 @@ function CustomGalaxy() {
 ### Sin estrellas fugaces
 
 ```tsx
-import { GalaxyComponent } from 'react-galaxy-bg';
+import { GalaxyComponent } from '@r0rri/react-galaxy-bg';
 
 function StaticGalaxy() {
   return (
@@ -96,7 +96,7 @@ function StaticGalaxy() {
 ### Galaxy minimalista
 
 ```tsx
-import { GalaxyComponent } from 'react-galaxy-bg';
+import { GalaxyComponent } from '@r0rri/react-galaxy-bg';
 
 function MinimalGalaxy() {
   return (

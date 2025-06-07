@@ -1,5 +1,5 @@
 {
-  "name": "react-galaxy-background",
+  "name": "@r0rri/react-galaxy-bg",
   "version": "1.0.0",
   "type": "module",
   "description": "Un componente React que simula un fondo de galaxia con estrellas animadas y estrellas fugaces",
