@@ -65,3 +65,6 @@ storybook-static/
 
 # Archivos de ESLint
 .eslintcache
+
+# Proyectos de prueba temporales
+test-app/
