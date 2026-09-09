@@ -48,7 +48,15 @@ Day-to-day work lands on `develop`; `main` mirrors what is published to npm. Fea
 
 CI runs on pushes and PRs to both branches: typecheck, build, smoke suite, and `npm pack --dry-run`.
 
-Releases are tag-driven. `npm version <patch|minor|major>` on `main`, then `git push --follow-tags`; the tag triggers `release.yml`, which refuses to publish if the tag and `package.json` disagree. Publishing uses npm trusted publishing over OIDC, so there is no `NPM_TOKEN` anywhere. That requires `id-token: write` and npm 11.5.1 or newer, which is why the workflow upgrades npm before publishing. Never add a publish step that expects a token; if publishing fails with an auth error, the trusted-publisher config on npmjs.com is what is wrong, not the workflow.
+Releases are tag-driven. `npm version <patch|minor|major>` on `main`, then `git push --follow-tags`; the tag triggers `release.yml`, which refuses to publish if the tag and `package.json` disagree.
+
+`release.yml` is split into two jobs on purpose, and that split is a security boundary, not organization. The `build` job installs dependencies and runs the toolchain but has no `id-token`. The `publish` job holds `id-token: write` and installs nothing at all: it downloads `dist/` as an artifact and runs `npm publish --ignore-scripts`, so no third-party code ever executes in the job that can mint an npm credential. Do not add `npm ci`, a build step, or any action that runs package code to the publish job, and do not merge the two jobs back together.
+
+Publishing uses npm trusted publishing over OIDC, so there is no `NPM_TOKEN` anywhere. It needs npm 11.5.1 or newer, which is why both workflows run Node 24; Node 22 still ships npm 10 and would fail. Never add a publish step that expects a token. If publishing fails with an auth error, the trusted-publisher config on npmjs.com is what is wrong, not the workflow.
+
+Actions in both workflows are pinned to commit SHAs with the version in a trailing comment. Keep that when upgrading. `npm ci --ignore-scripts` is deliberate: no dependency currently declares an install or postinstall script, and if one starts to, CI should fail loudly rather than run it. `npm audit --audit-level=high` also gates both workflows.
+
+Residual risk worth knowing: the build job still executes rollup and the TypeScript compiler, so a compromised build-time dependency could tamper with `dist/` before it is uploaded. The split does not fix that; it only removes the far worse outcome of an attacker minting a publish credential and releasing at will.
 
 The lockfile is committed on purpose, because `npm ci` needs it. Do not re-add it to `.gitignore`.
 
