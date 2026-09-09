@@ -93,6 +93,25 @@ Sin `palette`, `scroll` usa blanco puro y `nebula` una paleta de nebulosa con bl
 <GalaxyComponent palette={[{ color: '#FFFFFF' }, { color: '#FFD9C0' }]} />
 ```
 
+### Tipos exportados
+
+```ts
+import type {
+  GalaxyComponentProps,
+  GalaxyVariant,
+  GalaxyPaletteEntry
+} from '@r0rri/react-galaxy-bg';
+
+type GalaxyVariant = 'scroll' | 'nebula';
+
+interface GalaxyPaletteEntry {
+  /** Color CSS del punto */
+  color: string;
+  /** Peso relativo dentro de la paleta. Default 1 */
+  weight?: number;
+}
+```
+
 ## 🎨 Ejemplos de uso
 
 ### Configuración personalizada
