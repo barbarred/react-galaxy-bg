@@ -1,0 +1,55 @@
+name: Release
+
+# Publica al empujar un tag vX.Y.Z. Sin token: el paquete confía en este
+# workflow por OIDC, configurado en npmjs.com como trusted publisher.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Publicar en npm
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - name: El tag debe coincidir con package.json
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG="$(node -p "require('./package.json').version")"
+          if [ "$TAG" != "$PKG" ]; then
+            echo "El tag es $TAG pero package.json dice $PKG"
+            exit 1
+          fi
+
+      - run: npm ci
+
+      # La publicación por OIDC pide npm 11.5.1 o superior, y Node 22 trae npm 10
+      - name: Actualizar npm
+        run: npm install -g npm@latest
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Instalar Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Smoke test
+        run: npm test
+
+      - name: Publicar
+        run: npm publish --access public

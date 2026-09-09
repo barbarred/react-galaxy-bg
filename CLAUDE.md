@@ -11,16 +11,46 @@ The README and most source comments are written in Spanish. Match that language 
 ## Commands
 
 ```bash
-npm run build   # rollup -c → dist/index.js (cjs), dist/index.esm.js (esm), dist/*.d.ts
-npm run dev     # rollup -c -w, rebuild on change
-npx tsc --noEmit  # typecheck only (build also typechecks via @rollup/plugin-typescript)
+npm run build      # rollup -c → dist/index.js (cjs), dist/index.esm.js (esm), dist/*.d.ts
+npm run dev        # rollup -c -w, rebuild on change
+npm run typecheck  # tsc --noEmit over src only
+npm test           # bundle the harness, then run the Playwright smoke suite
 ```
 
-There is no lint step and no test runner. `npm test` is a stub that echoes and exits 0, so there is no way to run a single test. If you add tests, also add the runner and its dev dependency.
+`npm test` first runs `build:harness`, a second Rollup config that bundles `test/harness.tsx` together with React into an IIFE at `test/harness.js`. React 19 ships no UMD build, so bundling is the only way to load it from a plain script tag; that in turn lets the suite run against `file://` with no static server and no CDN. The harness reads its props from the query string and mounts under `StrictMode`, which is what keeps the double-invoke guard covered.
 
-To try a change in a real app, build first and consume the package via `npm link` or a file path. To eyeball the variants without an app, serve `dist/index.esm.js` next to a small HTML page that pulls React from a CDN through an import map, then drive it with Playwright. Chromium is already in `~/.cache/ms-playwright`, but the installed Playwright package may expect a different build number, so pass `executablePath` explicitly instead of running `playwright install`. `dist/` is gitignored, so a fresh clone has no build output until `npm run build` runs. `prepublishOnly` rebuilds automatically on publish.
+To run one test, use the built-in runner's filter, and rebuild the harness first if `src/` changed:
 
-Work happens on `develop`; `main` is the default branch and PR target.
+```bash
+npm run build:harness
+node --test --test-name-pattern "bucle vertical" test/smoke.test.mjs
+```
+
+Chromium in `~/.cache/ms-playwright` may be a different build number than the installed Playwright expects. Rather than downloading another copy, point the suite at the existing binary:
+
+```bash
+PLAYWRIGHT_CHROMIUM_PATH=~/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome npm test
+```
+
+CI has no such mismatch and just runs `npx playwright install --with-deps chromium`. There is still no lint step.
+
+For a change you want to look at rather than assert on, `test-app/index.html` is a gitignored panel with live controls for every prop. Serve the repo root and open it; it imports `dist/index.esm.js`, so rebuild after touching `src/`.
+
+```bash
+python3 -m http.server 8080 --directory .   # then open /test-app/index.html
+```
+
+`dist/` is gitignored, so a fresh clone has no build output until `npm run build` runs. `prepublishOnly` rebuilds automatically on publish.
+
+## Branching and release
+
+Day-to-day work lands on `develop`; `main` mirrors what is published to npm. Feature branches open PRs into `develop`, and a release is a PR from `develop` into `main` followed by a tag.
+
+CI runs on pushes and PRs to both branches: typecheck, build, smoke suite, and `npm pack --dry-run`.
+
+Releases are tag-driven. `npm version <patch|minor|major>` on `main`, then `git push --follow-tags`; the tag triggers `release.yml`, which refuses to publish if the tag and `package.json` disagree. Publishing uses npm trusted publishing over OIDC, so there is no `NPM_TOKEN` anywhere. That requires `id-token: write` and npm 11.5.1 or newer, which is why the workflow upgrades npm before publishing. Never add a publish step that expects a token; if publishing fails with an auth error, the trusted-publisher config on npmjs.com is what is wrong, not the workflow.
+
+The lockfile is committed on purpose, because `npm ci` needs it. Do not re-add it to `.gitignore`.
 
 ## Architecture
 

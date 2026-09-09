@@ -250,7 +250,34 @@ npm run build
 
 # Modo desarrollo
 npm run dev
+
+# Verificar tipos
+npm run typecheck
+
+# Smoke test sobre Chromium
+npx playwright install chromium
+npm test
 ```
+
+El smoke test monta el componente en un navegador sin interfaz y comprueba las
+dos variantes: cantidad de capas, total de puntos, colores de la paleta, los
+keyframes de cada capa y que no haya errores de consola.
+
+### Flujo de trabajo
+
+El trabajo del día a día va a `develop` y `main` refleja lo publicado en npm.
+Cada cambio entra por una rama corta con PR a `develop`, y cada release es un PR
+de `develop` a `main` seguido de un tag.
+
+```bash
+# Ya en main, con el merge del release hecho
+npm version minor
+git push --follow-tags
+```
+
+El tag dispara el workflow de release, que verifica tipos, construye, corre el
+smoke test y publica. La publicación usa OIDC, así que no hay ningún token
+guardado en el repositorio.
 
 ## 📄 Licencia
 
