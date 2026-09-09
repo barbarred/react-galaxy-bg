@@ -50,7 +50,6 @@ logs/
 
 # Archivos de npm
 *.tgz
-package-lock.json
 
 # Archivos de Yarn (si usas Yarn)
 yarn.lock
@@ -68,3 +67,6 @@ storybook-static/
 
 # Proyectos de prueba temporales
 test-app/
+
+# Bundle del arnés de pruebas
+test/harness.js

@@ -1,0 +1,113 @@
+name: Release
+
+# Al empujar un tag vX.Y.Z deja la versión preparada en npm, pendiente de que
+# la apruebes. Sin token: el paquete confía en este workflow por OIDC,
+# configurado en npmjs.com como trusted publisher.
+#
+# El trabajo va en dos jobs a propósito. Solo el segundo tiene id-token, y ese
+# no instala ni ejecuta ninguna dependencia, así que nada de terceros corre
+# nunca en el job que puede acuñar la credencial de publicación.
+on:
+  push:
+    tags: ['v*']
+
+# Sin permisos por defecto: cada job pide únicamente lo que necesita
+permissions: {}
+
+jobs:
+  build:
+    name: Construir y verificar
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      # Ninguna dependencia declara install ni postinstall. Si alguna lo hace
+      # en el futuro, es mejor que CI falle y lo revises a que corra sola.
+      - run: npm ci --ignore-scripts
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Instalar Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Smoke test
+        run: npm test
+
+      - name: Auditar dependencias
+        run: npm audit --audit-level=high
+
+      - name: Guardar el build
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dist
+          path: dist/
+          retention-days: 1
+          if-no-files-found: error
+
+  publish:
+    name: Preparar la publicación en npm
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Node 24 trae npm 11.19; la publicación por OIDC pide 11.5.1 o superior
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: El tag debe coincidir con package.json
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG="$(node -p "require('./package.json').version")"
+          if [ "$TAG" != "$PKG" ]; then
+            echo "El tag es $TAG pero package.json dice $PKG"
+            exit 1
+          fi
+
+      - name: Recuperar el build
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: dist
+          path: dist
+
+      - name: El build debe estar completo
+        run: |
+          for file in dist/index.js dist/index.esm.js dist/index.d.ts; do
+            if [ ! -s "$file" ]; then
+              echo "Falta $file en el artefacto"
+              exit 1
+            fi
+          done
+
+      # Sin npm ci: en este job no hay node_modules, así que no hay código de
+      # terceros que pueda leer ACTIONS_ID_TOKEN_REQUEST_TOKEN.
+      #
+      # Deja la versión preparada, no publicada. Se aprueba a mano con 2FA desde
+      # npmjs.com o con `npm stage approve <id>`, que es la última reja contra un
+      # dist manipulado en el job de build.
+      #
+      # ignore-scripts va por variable de entorno porque `npm stage publish` no
+      # documenta el flag. Sin esto, prepublishOnly intentaría construir aquí,
+      # donde a propósito no hay dependencias instaladas.
+      - name: Preparar la publicación
+        env:
+          NPM_CONFIG_IGNORE_SCRIPTS: 'true'
+        run: npm stage publish --access public

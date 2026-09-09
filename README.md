@@ -5,7 +5,9 @@ Un componente React hermoso y animado que simula un fondo de galaxia con estrell
 ## ✨ Características
 
 - Fondo de galaxia con gradiente espacial
+- Dos comportamientos: estrellas en ascenso o partículas flotando estilo nebulosa
 - Tres capas de estrellas con diferentes tamaños y velocidades de animación
+- Paleta de colores configurable por peso
 - Estrellas fugaces animadas
 - Completamente personalizable con props
 - TypeScript incluido
@@ -50,12 +52,65 @@ export default App;
 
 | Prop | Tipo | Default | Descripción |
 |------|------|---------|-------------|
+| `variant` | `'scroll' \| 'nebula'` | `'scroll'` | Comportamiento del movimiento |
+| `palette` | `GalaxyPaletteEntry[]` | según variante | Colores de los puntos con su peso relativo |
 | `starCount1` | `number` | `700` | Número de estrellas pequeñas (1px) |
 | `starCount2` | `number` | `200` | Número de estrellas medianas (2px) |
 | `starCount3` | `number` | `100` | Número de estrellas grandes (3px) |
+| `adaptiveDensity` | `boolean` | `false` | Recorta la cantidad de estrellas según el ancho del viewport |
 | `enableShootingStars` | `boolean` | `true` | Habilita/deshabilita las estrellas fugaces |
 | `className` | `string` | `''` | Clase CSS adicional |
 | `style` | `React.CSSProperties` | `{}` | Estilos inline adicionales |
+
+### Variantes de movimiento
+
+`scroll` es el comportamiento clásico: las tres capas ascienden en bucle a distinta velocidad, todas en blanco.
+
+`nebula` cambia el movimiento por una deriva lenta en varias direcciones, de modo que los puntos se leen como partículas suspendidas en lugar de un cielo desplazándose. Cada tamaño se reparte en tres grupos con dirección, velocidad y fase propias, y se suma una bruma de color muy tenue al fondo. El total de puntos y el costo de render son los mismos que en `scroll`.
+
+```tsx
+<GalaxyComponent variant="nebula" />
+```
+
+### Paleta de colores
+
+`palette` recibe una lista de colores con su peso relativo. Los pesos no necesitan sumar 100, se normalizan solos.
+
+```tsx
+<GalaxyComponent
+  variant="nebula"
+  palette={[
+    { color: '#FFFFFF', weight: 55 },
+    { color: '#FF8A65', weight: 25 },
+    { color: '#E5533D', weight: 20 }
+  ]}
+/>
+```
+
+Sin `palette`, `scroll` usa blanco puro y `nebula` una paleta de nebulosa con blancos, anaranjados, rojizos y un azul de apoyo. La prop funciona en ambas variantes, así que también puedes teñir el modo clásico.
+
+```tsx
+<GalaxyComponent palette={[{ color: '#FFFFFF' }, { color: '#FFD9C0' }]} />
+```
+
+### Tipos exportados
+
+```ts
+import type {
+  GalaxyComponentProps,
+  GalaxyVariant,
+  GalaxyPaletteEntry
+} from '@r0rri/react-galaxy-bg';
+
+type GalaxyVariant = 'scroll' | 'nebula';
+
+interface GalaxyPaletteEntry {
+  /** Color CSS del punto */
+  color: string;
+  /** Peso relativo dentro de la paleta. Default 1 */
+  weight?: number;
+}
+```
 
 ## 🎨 Ejemplos de uso
 
@@ -73,6 +128,25 @@ function CustomGalaxy() {
       enableShootingStars={true}
       className="mi-galaxia-personalizada"
       style={{ zIndex: -10 }}
+    />
+  );
+}
+```
+
+### Densidad adaptativa
+
+Por defecto las tres props de cantidad se respetan exactamente, sin importar el tamaño de la pantalla. Con `adaptiveDensity` activado, la cantidad se recorta proporcionalmente al ancho del viewport, lo que aligera el renderizado en móviles a costa de un cielo menos poblado.
+
+```tsx
+import { GalaxyComponent } from '@r0rri/react-galaxy-bg';
+
+function ResponsiveGalaxy() {
+  return (
+    <GalaxyComponent
+      starCount1={1500}
+      starCount2={400}
+      starCount3={200}
+      adaptiveDensity
     />
   );
 }
@@ -114,7 +188,8 @@ function MinimalGalaxy() {
 
 El componente incluye varias animaciones:
 
-- **Estrellas flotantes**: Las estrellas se mueven verticalmente creando un efecto de profundidad
+- **Ascenso (`scroll`)**: Las estrellas se mueven verticalmente creando un efecto de profundidad
+- **Deriva (`nebula`)**: Los puntos flotan en direcciones cruzadas con un pulso suave de opacidad
 - **Estrellas fugaces**: Aparecen cada 10 segundos con trayectorias diagonales realistas
 - **Responsive**: Se adapta automáticamente a cambios de tamaño de ventana
 
@@ -133,14 +208,24 @@ El componente usa CSS personalizado que se inyecta automáticamente. Si necesita
   background-color: #ffeb3b !important;
   filter: drop-shadow(0 0 15px #ffeb3b) !important;
 }
+
+/* Ajustar la bruma de la variante nebula */
+.galaxy-nebula-haze {
+  opacity: 0.4 !important;
+}
 ```
+
+Clases disponibles: `.galaxy-star-background` en el contenedor, `.galaxy-layer` en toda capa de puntos, `.galaxy-stars`, `.galaxy-stars2` y `.galaxy-stars3` en la variante `scroll`, `.galaxy-particles` con sus modificadores `-small`, `-medium` y `-large` en `nebula`, más `.galaxy-nebula-haze` y `.galaxy-shooting-star`.
 
 ## 📱 Consideraciones de rendimiento
 
 - Las estrellas se generan usando `box-shadow` para mejor rendimiento
 - Las animaciones usan `transform` para aprovechar la aceleración por hardware
 - El componente se actualiza solo cuando cambia el tamaño de la ventana
+- Las animaciones se pausan cuando la pestaña deja de estar visible
+- Se respeta `prefers-reduced-motion`
 - Cleanup automático de intervals y event listeners
+- En pantallas pequeñas, considera `adaptiveDensity` o bajar las cantidades a mano si usas valores muy altos
 
 ## 🌟 Casos de uso
 
@@ -165,7 +250,41 @@ npm run build
 
 # Modo desarrollo
 npm run dev
+
+# Verificar tipos
+npm run typecheck
+
+# Smoke test sobre Chromium
+npx playwright install chromium
+npm test
 ```
+
+El smoke test monta el componente en un navegador sin interfaz y comprueba las
+dos variantes: cantidad de capas, total de puntos, colores de la paleta, los
+keyframes de cada capa y que no haya errores de consola.
+
+### Flujo de trabajo
+
+El trabajo del día a día va a `develop` y `main` refleja lo publicado en npm.
+Cada cambio entra por una rama corta con PR a `develop`, y cada release es un PR
+de `develop` a `main` seguido de un tag.
+
+```bash
+# En develop, con el trabajo del release listo
+npm version minor --no-git-tag-version
+git commit -am "chore: bump version to 2.3.0"
+git push origin develop
+
+# Con el PR a main ya mergeado
+git checkout main && git pull origin main
+git tag -a v2.3.0 -m "v2.3.0"
+git push origin v2.3.0
+```
+
+El tag dispara el workflow de release, que verifica tipos, construye, corre el
+smoke test y deja la versión preparada en npm. Queda pendiente de aprobación
+manual con 2FA, desde npmjs.com o con `npm stage approve`. La publicación usa
+OIDC, así que no hay ningún token guardado en el repositorio.
 
 ## 📄 Licencia
 
