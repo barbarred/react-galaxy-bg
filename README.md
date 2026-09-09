@@ -270,14 +270,21 @@ Cada cambio entra por una rama corta con PR a `develop`, y cada release es un PR
 de `develop` a `main` seguido de un tag.
 
 ```bash
-# Ya en main, con el merge del release hecho
-npm version minor
-git push --follow-tags
+# En develop, con el trabajo del release listo
+npm version minor --no-git-tag-version
+git commit -am "chore: bump version to 2.3.0"
+git push origin develop
+
+# Con el PR a main ya mergeado
+git checkout main && git pull origin main
+git tag -a v2.3.0 -m "v2.3.0"
+git push origin v2.3.0
 ```
 
 El tag dispara el workflow de release, que verifica tipos, construye, corre el
-smoke test y publica. La publicación usa OIDC, así que no hay ningún token
-guardado en el repositorio.
+smoke test y deja la versión preparada en npm. Queda pendiente de aprobación
+manual con 2FA, desde npmjs.com o con `npm stage approve`. La publicación usa
+OIDC, así que no hay ningún token guardado en el repositorio.
 
 ## 📄 Licencia
 

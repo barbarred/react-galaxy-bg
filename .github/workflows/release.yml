@@ -1,7 +1,8 @@
 name: Release
 
-# Publica al empujar un tag vX.Y.Z. Sin token: el paquete confía en este
-# workflow por OIDC, configurado en npmjs.com como trusted publisher.
+# Al empujar un tag vX.Y.Z deja la versión preparada en npm, pendiente de que
+# la apruebes. Sin token: el paquete confía en este workflow por OIDC,
+# configurado en npmjs.com como trusted publisher.
 #
 # El trabajo va en dos jobs a propósito. Solo el segundo tiene id-token, y ese
 # no instala ni ejecuta ninguna dependencia, así que nada de terceros corre
@@ -56,7 +57,7 @@ jobs:
           if-no-files-found: error
 
   publish:
-    name: Publicar en npm
+    name: Preparar la publicación en npm
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -97,7 +98,16 @@ jobs:
           done
 
       # Sin npm ci: en este job no hay node_modules, así que no hay código de
-      # terceros que pueda leer ACTIONS_ID_TOKEN_REQUEST_TOKEN. --ignore-scripts
-      # evita además que prepublishOnly vuelva a ejecutar el build aquí.
-      - name: Publicar
-        run: npm publish --access public --ignore-scripts
+      # terceros que pueda leer ACTIONS_ID_TOKEN_REQUEST_TOKEN.
+      #
+      # Deja la versión preparada, no publicada. Se aprueba a mano con 2FA desde
+      # npmjs.com o con `npm stage approve <id>`, que es la última reja contra un
+      # dist manipulado en el job de build.
+      #
+      # ignore-scripts va por variable de entorno porque `npm stage publish` no
+      # documenta el flag. Sin esto, prepublishOnly intentaría construir aquí,
+      # donde a propósito no hay dependencias instaladas.
+      - name: Preparar la publicación
+        env:
+          NPM_CONFIG_IGNORE_SCRIPTS: 'true'
+        run: npm stage publish --access public
