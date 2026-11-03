@@ -31,7 +31,10 @@ if (root) {
         starCount2: num('c2', 200),
         starCount3: num('c3', 100),
         adaptiveDensity: params.get('adaptive') === '1',
-        enableShootingStars: params.get('shooting') !== '0'
+        enableShootingStars: params.get('shooting') !== '0',
+        shootingStarInterval: num('ssInterval', 10000),
+        shootingStarDuration: num('ssDuration', 5000),
+        shootingStarDelay: num('ssDelay', 4000)
       })
     )
   );
