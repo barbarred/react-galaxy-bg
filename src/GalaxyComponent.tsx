@@ -17,6 +17,12 @@ interface GalaxyComponentProps {
   palette?: GalaxyPaletteEntry[];
   adaptiveDensity?: boolean;
   enableShootingStars?: boolean;
+  /** Cada cuántos ms se repite el ciclo de estrellas fugaces. Default 10000 */
+  shootingStarInterval?: number;
+  /** Cuánto dura el vuelo de cada estrella fugaz, en ms. Default 5000 */
+  shootingStarDuration?: number;
+  /** Desfase en ms entre la primera y la segunda estrella del ciclo. Default 4000 */
+  shootingStarDelay?: number;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -122,11 +128,15 @@ const GalaxyComponent: React.FC<GalaxyComponentProps> = ({
   palette,
   adaptiveDensity = false,
   enableShootingStars = true,
+  shootingStarInterval = 10000,
+  shootingStarDuration = 5000,
+  shootingStarDelay = 4000,
   className = '',
   style = {}
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const shootingStarIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const shootingStarTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const resizeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastWidthRef = useRef<number>(0);
   const initializedRef = useRef<boolean>(false);
@@ -241,25 +251,31 @@ const GalaxyComponent: React.FC<GalaxyComponentProps> = ({
 
     if (!rightToLeft || !topToBottom) return;
 
-    const duration = 5000; // ms
-    const delay = 4000; // ms
-
-    const animateSequence = () => {
-      animateShootingStar(rightToLeft, 'shootingStarRightToLeft', duration);
-
-      setTimeout(() => {
-        animateShootingStar(topToBottom, 'shootingStarTopToBottom', duration);
-      }, delay);
+    // Se guardan para que el cleanup no deje disparos pendientes de una configuración anterior
+    const schedule = (callback: () => void, ms: number) => {
+      const id = setTimeout(() => {
+        shootingStarTimeoutsRef.current = shootingStarTimeoutsRef.current.filter(pending => pending !== id);
+        callback();
+      }, ms);
+      shootingStarTimeoutsRef.current.push(id);
     };
 
-    setTimeout(animateSequence, 1000);
+    const animateSequence = () => {
+      animateShootingStar(rightToLeft, 'shootingStarRightToLeft', shootingStarDuration);
+
+      schedule(() => {
+        animateShootingStar(topToBottom, 'shootingStarTopToBottom', shootingStarDuration);
+      }, shootingStarDelay);
+    };
+
+    schedule(animateSequence, 1000);
 
     if (shootingStarIntervalRef.current) {
       clearInterval(shootingStarIntervalRef.current);
     }
 
-    shootingStarIntervalRef.current = setInterval(animateSequence, 10000);
-  }, [enableShootingStars, animateShootingStar]);
+    shootingStarIntervalRef.current = setInterval(animateSequence, shootingStarInterval);
+  }, [enableShootingStars, shootingStarInterval, shootingStarDuration, shootingStarDelay, animateShootingStar]);
 
   const setupEventListeners = useCallback(() => {
     const handleResize = () => {
@@ -506,6 +522,9 @@ const GalaxyComponent: React.FC<GalaxyComponentProps> = ({
       if (shootingStarIntervalRef.current) {
         clearInterval(shootingStarIntervalRef.current);
       }
+
+      shootingStarTimeoutsRef.current.forEach(clearTimeout);
+      shootingStarTimeoutsRef.current = [];
 
       initializedRef.current = false;
     };

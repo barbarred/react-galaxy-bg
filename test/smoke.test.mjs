@@ -222,6 +222,19 @@ describe('props', () => {
     await page.close();
   });
 
+  test('los tiempos de las estrellas fugaces salen de las props', async () => {
+    const { page } = await render('?variant=nebula&ssDuration=1234&ssDelay=60000');
+    // La primera sale al segundo de montar; la segunda espera el desfase pedido
+    await page.waitForTimeout(1000);
+    const animations = await page.evaluate(() => ({
+      first: document.querySelector('.right-to-left').style.animation,
+      second: document.querySelector('.top-to-bottom').style.animation
+    }));
+    assert.match(animations.first, /1234ms/);
+    assert.equal(animations.second, '');
+    await page.close();
+  });
+
   test('inyecta una sola hoja de estilos bajo StrictMode', async () => {
     const { page, snapshot } = await render('?variant=nebula');
     assert.equal(snapshot.styleTags, 1);
