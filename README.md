@@ -59,6 +59,9 @@ export default App;
 | `starCount3` | `number` | `100` | Número de estrellas grandes (3px) |
 | `adaptiveDensity` | `boolean` | `false` | Recorta la cantidad de estrellas según el ancho del viewport |
 | `enableShootingStars` | `boolean` | `true` | Habilita/deshabilita las estrellas fugaces |
+| `shootingStarInterval` | `number` | `10000` | Cada cuántos ms se repite el ciclo de estrellas fugaces |
+| `shootingStarDuration` | `number` | `5000` | Duración en ms del vuelo de cada estrella fugaz |
+| `shootingStarDelay` | `number` | `4000` | Desfase en ms entre la primera y la segunda estrella del ciclo |
 | `className` | `string` | `''` | Clase CSS adicional |
 | `style` | `React.CSSProperties` | `{}` | Estilos inline adicionales |
 
@@ -190,7 +193,11 @@ El componente incluye varias animaciones:
 
 - **Ascenso (`scroll`)**: Las estrellas se mueven verticalmente creando un efecto de profundidad
 - **Deriva (`nebula`)**: Los puntos flotan en direcciones cruzadas con un pulso suave de opacidad
-- **Estrellas fugaces**: Aparecen cada 10 segundos con trayectorias diagonales realistas
+- **Estrellas fugaces**: Cada ciclo (10 s por defecto) lanza dos con trayectorias diagonales, la segunda 4 s después de la primera. Para espaciarlas, sube `shootingStarInterval` y `shootingStarDelay` o acorta `shootingStarDuration`:
+
+```tsx
+<GalaxyComponent shootingStarInterval={20000} shootingStarDuration={3000} shootingStarDelay={10000} />
+```
 - **Responsive**: Se adapta automáticamente a cambios de tamaño de ventana
 
 ## 🎨 Personalización de estilos
